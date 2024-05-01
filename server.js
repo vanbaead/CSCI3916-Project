@@ -12,12 +12,21 @@ var jwtAuth = require('./auth_jwt');
 var jwt = require('jsonwebtoken');
 var Chat = require('./Chats')
 var axios = require('axios');
+var Pusher = require('pusher');
 
 var app = express();
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(passport.initialize());
+
+const pusher = new Pusher({
+    appId: "1795639",
+    key: "59737af5c15b06f7dce2",
+    secret: "13e2dd9ef92b02cc7cd1",
+    cluster: "mt1",
+    useTLS: true
+});
 
 var router = express.Router();
 
@@ -53,9 +62,13 @@ router.post('/signin', function (req, res) {
         if (err) {
             res.send(err);
         }
+        if (!user) {
+            return res.status(401).send({ success: false, msg: 'Authentication failed: User not found.' });
+        }
         
         user.comparePassword(userNew.password, function(isMatch) {
             if (isMatch) {
+                console.log('Success');
                 var userToken = { id: user.id, username: user.username };
                 var token = jwt.sign(userToken, process.env.SECRET_KEY);
                 res.json ({success: true, token: 'JWT ' + token});
@@ -116,7 +129,7 @@ router.route('/Chat')
             const detectedLanguage = response.data.translations[0].detected_source_language;
             const translatedText = response.data.translations[0].text;
 
-            const supportedLang = ['EN', 'FR', 'ES'];
+            const supportedLang = ['EN', 'FR', 'ES', 'NB'];
             if (!supportedLang.includes(detectedLanguage)) {
                 return res.status(400).json({ success: false, msg: 'Unsupported language'});
             }
@@ -151,6 +164,10 @@ router.route('/Chat')
             });
 
             await newChat.save();
+            
+            pusher.trigger('chatNotifs', 'chat-submitted', {
+                message: newChat
+            });
 
             res.json({ success:true, message: newChat });
         }
