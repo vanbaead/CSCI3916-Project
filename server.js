@@ -14,8 +14,15 @@ var Chat = require('./Chats')
 var axios = require('axios');
 var Pusher = require('pusher');
 
+var corsOptions = {
+    origin: '*', // Allows requests from any origin
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Specify allowed HTTP methods
+    allowedHeaders: ['Content-Type', 'Authorization'], // Specify allowed request headers
+    credentials: true, // Enable credentials (cookies, authorization headers, etc.)
+};
+
 var app = express();
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(passport.initialize());
